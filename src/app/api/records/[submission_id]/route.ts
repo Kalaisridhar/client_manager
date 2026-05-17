@@ -139,8 +139,21 @@ export async function PUT(
     return NextResponse.json({ error: deleteError.message }, { status: 500 })
   }
 
+  interface AnswerToInsert {
+    submission_id: string
+    form_id: string
+    field_id: string
+    field_type: string
+    num_answer: number | null
+    text_answer: string | null
+    textarea_answer: string | null
+    int_answer: number | null
+    date_answer: string | null
+    dropdown_answer: string | null
+  }
+
   // 4. Map and prepare the new updated answers, supporting relational flatMap inserts
-  const answersToInsert = Object.entries(answers).flatMap(([fieldId, value]) => {
+  const answersToInsert: AnswerToInsert[] = Object.entries(answers).flatMap(([fieldId, value]) => {
     const fieldType = fieldTypeMap.get(fieldId) || 'TEXT'
     const isMultiple = selectTypeMap.get(fieldId) === 'multiple'
 
@@ -156,7 +169,7 @@ export async function PUT(
         int_answer: null,
         date_answer: null,
         dropdown_answer: optId
-      }))
+      } as AnswerToInsert))
     }
     
     let num_answer = null
@@ -198,7 +211,7 @@ export async function PUT(
       int_answer,
       date_answer,
       dropdown_answer
-    }]
+    } as AnswerToInsert]
   })
 
   // 5. Bulk insert updated answers

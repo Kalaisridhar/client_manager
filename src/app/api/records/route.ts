@@ -67,10 +67,16 @@ export async function GET(request: Request) {
 
     subAnswers.forEach(ans => {
       let val = null
+      const optionName = ans.field_options 
+        ? (Array.isArray(ans.field_options) 
+            ? ans.field_options[0]?.option_name 
+            : (ans.field_options as any).option_name) 
+        : null
+
       if (ans.field_type === 'TEXT') val = ans.text_answer
       else if (ans.field_type === 'TEXTAREA') val = ans.textarea_answer
       else if (ans.field_type === 'DATE') val = ans.date_answer
-      else if (ans.field_type === 'DROPDOWN') val = ans.field_options?.option_name || ans.dropdown_answer
+      else if (ans.field_type === 'DROPDOWN') val = optionName || ans.dropdown_answer
       else if (ans.field_type === 'CURRENCY') val = ans.num_answer
       else if (ans.field_type === 'NUMBER') val = ans.int_answer !== null ? ans.int_answer : ans.num_answer
 
@@ -135,8 +141,21 @@ export async function POST(request: Request) {
   const fieldTypeMap = new Map(fields.map(f => [f.id, f.field_type]))
   const selectTypeMap = new Map(fields.map(f => [f.id, f.select_type]))
 
+  interface AnswerToInsert {
+    submission_id: string
+    form_id: string
+    field_id: string
+    field_type: string
+    num_answer: number | null
+    text_answer: string | null
+    textarea_answer: string | null
+    int_answer: number | null
+    date_answer: string | null
+    dropdown_answer: string | null
+  }
+
   // 3. Prepare answers for bulk insertion, supporting relational flatMap inserts
-  const answersToInsert = Object.entries(answers).flatMap(([fieldId, value]) => {
+  const answersToInsert: AnswerToInsert[] = Object.entries(answers).flatMap(([fieldId, value]) => {
     const fieldType = fieldTypeMap.get(fieldId) || 'TEXT'
     const isMultiple = selectTypeMap.get(fieldId) === 'multiple'
 
@@ -152,7 +171,7 @@ export async function POST(request: Request) {
         int_answer: null,
         date_answer: null,
         dropdown_answer: optId
-      }))
+      } as AnswerToInsert))
     }
     
     let num_answer = null
@@ -194,7 +213,7 @@ export async function POST(request: Request) {
       int_answer,
       date_answer,
       dropdown_answer
-    }]
+    } as AnswerToInsert]
   })
 
   // 4. Perform bulk insert of answers
